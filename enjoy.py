@@ -105,7 +105,8 @@ def main():  # noqa: C901
             print(f"Setting torch.num_threads to {args.num_threads}")
         th.set_num_threads(args.num_threads)
 
-    is_atari = ExperimentManager.is_atari(env_id)
+    # is_atari = ExperimentManager.is_atari(env_id)
+    is_atari= False
 
     stats_path = os.path.join(log_path, env_id)
     hyperparams, stats_path = get_saved_hyperparams(stats_path, norm_reward=args.norm_reward, test_mode=True)
