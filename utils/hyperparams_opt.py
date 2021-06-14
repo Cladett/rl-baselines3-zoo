@@ -2,8 +2,6 @@ from typing import Any, Dict
 
 import numpy as np
 import optuna
-from sb3_contrib import TQC
-from stable_baselines3 import DDPG, DQN, SAC, TD3
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from torch import nn as nn
 
@@ -155,9 +153,9 @@ def sample_sac_params(trial: optuna.Trial) -> Dict[str, Any]:
     buffer_size = trial.suggest_categorical("buffer_size", [int(1e4), int(1e5), int(1e6)])
     learning_starts = trial.suggest_categorical("learning_starts", [0, 1000, 10000, 20000])
     # train_freq = trial.suggest_categorical('train_freq', [1, 10, 100, 300])
-    train_freq = trial.suggest_categorical("train_freq", [8, 16, 32, 64, 128, 256, 512])
+    train_freq = trial.suggest_categorical("train_freq", [1, 4, 8, 16, 32, 64, 128, 256, 512])
     # Polyak coeff
-    tau = trial.suggest_categorical("tau", [0.001, 0.005, 0.01, 0.02, 0.05])
+    tau = trial.suggest_categorical("tau", [0.001, 0.005, 0.01, 0.02, 0.05, 0.08])
     # gradient_steps takes too much time
     # gradient_steps = trial.suggest_categorical('gradient_steps', [1, 100, 300])
     gradient_steps = train_freq
@@ -174,7 +172,8 @@ def sample_sac_params(trial: optuna.Trial) -> Dict[str, Any]:
         "medium": [256, 256],
         "big": [400, 300],
         # Uncomment for tuning HER
-        # "verybig": [256, 256, 256],
+        # "large": [256, 256, 256],
+        # "verybig": [512, 512, 512],
     }[net_arch]
 
     target_entropy = "auto"
@@ -182,7 +181,7 @@ def sample_sac_params(trial: optuna.Trial) -> Dict[str, Any]:
     #     # target_entropy = trial.suggest_categorical('target_entropy', ['auto', 5, 1, 0, -1, -5, -10, -20, -50])
     #     target_entropy = trial.suggest_uniform('target_entropy', -10, 10)
 
-    return {
+    hyperparams = {
         "gamma": gamma,
         "learning_rate": learning_rate,
         "batch_size": batch_size,
@@ -196,6 +195,11 @@ def sample_sac_params(trial: optuna.Trial) -> Dict[str, Any]:
         "policy_kwargs": dict(log_std_init=log_std_init, net_arch=net_arch),
     }
 
+    if trial.using_her_replay_buffer:
+        hyperparams = sample_her_params(trial, hyperparams)
+
+    return hyperparams
+
 
 def sample_td3_params(trial: optuna.Trial) -> Dict[str, Any]:
     """
@@ -208,16 +212,11 @@ def sample_td3_params(trial: optuna.Trial) -> Dict[str, Any]:
     learning_rate = trial.suggest_loguniform("lr", 1e-5, 1)
     batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 100, 128, 256, 512, 1024, 2048])
     buffer_size = trial.suggest_categorical("buffer_size", [int(1e4), int(1e5), int(1e6)])
+    # Polyak coeff
+    tau = trial.suggest_categorical("tau", [0.001, 0.005, 0.01, 0.02, 0.05, 0.08])
 
-    episodic = trial.suggest_categorical("episodic", [True, False])
-
-    if episodic:
-        n_episodes_rollout = 1
-        train_freq, gradient_steps = -1, -1
-    else:
-        train_freq = trial.suggest_categorical("train_freq", [1, 16, 128, 256, 1000, 2000])
-        gradient_steps = train_freq
-        n_episodes_rollout = -1
+    train_freq = trial.suggest_categorical("train_freq", [1, 4, 8, 16, 32, 64, 128, 256, 512])
+    gradient_steps = train_freq
 
     noise_type = trial.suggest_categorical("noise_type", ["ornstein-uhlenbeck", "normal", None])
     noise_std = trial.suggest_uniform("noise_std", 0, 1)
@@ -241,8 +240,8 @@ def sample_td3_params(trial: optuna.Trial) -> Dict[str, Any]:
         "buffer_size": buffer_size,
         "train_freq": train_freq,
         "gradient_steps": gradient_steps,
-        "n_episodes_rollout": n_episodes_rollout,
         "policy_kwargs": dict(net_arch=net_arch),
+        "tau": tau,
     }
 
     if noise_type == "normal":
@@ -253,6 +252,9 @@ def sample_td3_params(trial: optuna.Trial) -> Dict[str, Any]:
         hyperparams["action_noise"] = OrnsteinUhlenbeckActionNoise(
             mean=np.zeros(trial.n_actions), sigma=noise_std * np.ones(trial.n_actions)
         )
+
+    if trial.using_her_replay_buffer:
+        hyperparams = sample_her_params(trial, hyperparams)
 
     return hyperparams
 
@@ -269,17 +271,10 @@ def sample_ddpg_params(trial: optuna.Trial) -> Dict[str, Any]:
     batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 100, 128, 256, 512, 1024, 2048])
     buffer_size = trial.suggest_categorical("buffer_size", [int(1e4), int(1e5), int(1e6)])
     # Polyak coeff
-    tau = trial.suggest_categorical("tau", [0.001, 0.005, 0.01, 0.02])
+    tau = trial.suggest_categorical("tau", [0.001, 0.005, 0.01, 0.02, 0.05, 0.08])
 
-    episodic = trial.suggest_categorical("episodic", [True, False])
-
-    if episodic:
-        n_episodes_rollout = 1
-        train_freq, gradient_steps = -1, -1
-    else:
-        train_freq = trial.suggest_categorical("train_freq", [1, 16, 128, 256, 1000, 2000])
-        gradient_steps = train_freq
-        n_episodes_rollout = -1
+    train_freq = trial.suggest_categorical("train_freq", [1, 4, 8, 16, 32, 64, 128, 256, 512])
+    gradient_steps = train_freq
 
     noise_type = trial.suggest_categorical("noise_type", ["ornstein-uhlenbeck", "normal", None])
     noise_std = trial.suggest_uniform("noise_std", 0, 1)
@@ -302,7 +297,6 @@ def sample_ddpg_params(trial: optuna.Trial) -> Dict[str, Any]:
         "buffer_size": buffer_size,
         "train_freq": train_freq,
         "gradient_steps": gradient_steps,
-        "n_episodes_rollout": n_episodes_rollout,
         "policy_kwargs": dict(net_arch=net_arch),
     }
 
@@ -314,6 +308,9 @@ def sample_ddpg_params(trial: optuna.Trial) -> Dict[str, Any]:
         hyperparams["action_noise"] = OrnsteinUhlenbeckActionNoise(
             mean=np.zeros(trial.n_actions), sigma=noise_std * np.ones(trial.n_actions)
         )
+
+    if trial.using_her_replay_buffer:
+        hyperparams = sample_her_params(trial, hyperparams)
 
     return hyperparams
 
@@ -337,7 +334,6 @@ def sample_dqn_params(trial: optuna.Trial) -> Dict[str, Any]:
     train_freq = trial.suggest_categorical("train_freq", [1, 4, 8, 16, 128, 256, 1000])
     subsample_steps = trial.suggest_categorical("subsample_steps", [1, 2, 4, 8])
     gradient_steps = max(train_freq // subsample_steps, 1)
-    n_episodes_rollout = -1
 
     net_arch = trial.suggest_categorical("net_arch", ["tiny", "small", "medium"])
 
@@ -350,7 +346,6 @@ def sample_dqn_params(trial: optuna.Trial) -> Dict[str, Any]:
         "buffer_size": buffer_size,
         "train_freq": train_freq,
         "gradient_steps": gradient_steps,
-        "n_episodes_rollout": n_episodes_rollout,
         "exploration_fraction": exploration_fraction,
         "exploration_final_eps": exploration_final_eps,
         "target_update_interval": target_update_interval,
@@ -358,32 +353,27 @@ def sample_dqn_params(trial: optuna.Trial) -> Dict[str, Any]:
         "policy_kwargs": dict(net_arch=net_arch),
     }
 
+    if trial.using_her_replay_buffer:
+        hyperparams = sample_her_params(trial, hyperparams)
+
     return hyperparams
 
 
-def sample_her_params(trial: optuna.Trial) -> Dict[str, Any]:
+def sample_her_params(trial: optuna.Trial, hyperparams: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Sampler for HER hyperparams.
+    Sampler for HerReplayBuffer hyperparams.
 
     :param trial:
+    :parma hyperparams:
     :return:
     """
-    model_class_str = {
-        SAC: "sac",
-        DDPG: "ddpg",
-        DQN: "dqn",
-        TD3: "td3",
-        TQC: "tqc",
-    }[trial.model_class]
-
-    hyperparams = HYPERPARAMS_SAMPLER[model_class_str](trial)
-
-    hyperparams["n_sampled_goal"] = trial.suggest_int("n_sampled_goal", 1, 5)
-    hyperparams["goal_selection_strategy"] = trial.suggest_categorical(
+    her_kwargs = trial.her_kwargs.copy()
+    her_kwargs["n_sampled_goal"] = trial.suggest_int("n_sampled_goal", 1, 5)
+    her_kwargs["goal_selection_strategy"] = trial.suggest_categorical(
         "goal_selection_strategy", ["final", "episode", "future"]
     )
-    hyperparams["online_sampling"] = trial.suggest_categorical("online_sampling", [True, False])
-
+    her_kwargs["online_sampling"] = trial.suggest_categorical("online_sampling", [True, False])
+    hyperparams["replay_buffer_kwargs"] = her_kwargs
     return hyperparams
 
 
@@ -427,7 +417,6 @@ HYPERPARAMS_SAMPLER = {
     "ddpg": sample_ddpg_params,
     "dqn": sample_dqn_params,
     "qrdqn": sample_qrdqn_params,
-    "her": sample_her_params,
     "sac": sample_sac_params,
     "tqc": sample_tqc_params,
     "ppo": sample_ppo_params,

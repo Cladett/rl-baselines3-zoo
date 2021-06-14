@@ -14,7 +14,7 @@ Pendulum-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
@@ -27,7 +27,7 @@ LunarLanderContinuous-v2:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
@@ -40,7 +40,7 @@ BipedalWalker-v3:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
@@ -48,19 +48,18 @@ BipedalWalker-v3:
 BipedalWalkerHardcore-v3:
   n_timesteps: !!float 1e7
   policy: 'MlpPolicy'
-  gamma: 0.98
-  buffer_size: 200000
+  gamma: 0.99
+  buffer_size: 1000000
   learning_starts: 10000
   noise_type: 'normal'
   noise_std: 0.1
-  gradient_steps: -1
-  n_episodes_rollout: 1
-  learning_rate: !!float 1e-3
+  batch_size: 256
+  train_freq: 1
+  learning_rate: lin_7e-4
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 # Tuned
 HalfCheetahBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 1e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -69,12 +68,11 @@ HalfCheetahBulletEnv-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 AntBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 1e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -83,12 +81,11 @@ AntBulletEnv-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 HopperBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 1e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -97,12 +94,11 @@ HopperBulletEnv-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 Walker2DBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 1e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -111,14 +107,13 @@ Walker2DBulletEnv-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 
 # TO BE tested
 HumanoidBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 2e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -126,14 +121,12 @@ HumanoidBulletEnv-v0:
   learning_starts: 10000
   noise_type: 'normal'
   noise_std: 0.1
-  gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: 1
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 # Tuned
 ReacherBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 3e5
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -142,13 +135,12 @@ ReacherBulletEnv-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 # Tuned
 InvertedDoublePendulumBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 1e6
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -157,13 +149,12 @@ InvertedDoublePendulumBulletEnv-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 # Tuned
 InvertedPendulumSwingupBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 3e5
   policy: 'MlpPolicy'
   gamma: 0.98
@@ -172,12 +163,11 @@ InvertedPendulumSwingupBulletEnv-v0:
   noise_type: 'normal'
   noise_std: 0.1
   gradient_steps: -1
-  n_episodes_rollout: 1
+  train_freq: [1, "episode"]
   learning_rate: !!float 1e-3
   policy_kwargs: "dict(net_arch=[400, 300])"
 
 MinitaurBulletEnv-v0:
-  env_wrapper: sb3_contrib.common.wrappers.TimeFeatureWrapper
   n_timesteps: !!float 1e6
   policy: 'MlpPolicy'
   gamma: 0.99
